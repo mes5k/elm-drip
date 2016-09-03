@@ -8,7 +8,7 @@ import Html.Attributes exposing (..)
 -- We need to import the `on` event from Html.Events, and we'll need keyCode
 -- later so let's add it as well.
 
-import Html.Events exposing (on, keyCode, onInput)
+import Html.Events exposing (on, keyCode, onInput, onCheck)
 
 
 -- We need to use a Json Decoder to extract our keyCode from the `on` event.
@@ -51,6 +51,7 @@ type alias Todo =
     { title : String
     , completed : Bool
     , editing : Bool
+    , identifier : Int
     }
 
 
@@ -72,6 +73,7 @@ type alias Model =
     { todos : List Todo
     , todo : Todo
     , filter : FilterState
+    , nextIdentifier : Int
     }
 
 
@@ -82,6 +84,7 @@ type alias Model =
 type Msg
     = Add
     | Complete Todo
+    | Uncomplete Todo
     | Delete Todo
     | UpdateField String
     | Filter FilterState
@@ -89,10 +92,11 @@ type Msg
 
 newTodo : Todo
 newTodo =
-  { title = ""
-  , completed = False
-  , editing = False
-  }
+    { title = ""
+    , completed = False
+    , editing = False
+    , identifier = 0
+    }
 
 
 initialModel =
@@ -100,10 +104,12 @@ initialModel =
         [ { title = "The first todo"
           , completed = False
           , editing = False
+          , identifier = 1
           }
         ]
-    , todo = newTodo
+    , todo = { newTodo | identifier = 2 }
     , filter = All
+    , nextIdentifier = 3
     }
 
 
@@ -111,10 +117,31 @@ update : Msg -> Model -> Model
 update msg model =
     case msg of
         Add ->
-            {model | todos = model.todo :: model.todos , todo = newTodo }
+            { model
+                | todos = model.todo :: model.todos
+                , todo = newTodo
+                , nextIdentifier = model.nextIdentifier + 1
+            }
 
         Complete todo ->
-            model
+            let
+                updateTodo thisTodo =
+                    if thisTodo.identifier == todo.identifier then
+                        { todo | completed = True }
+                    else
+                        thisTodo
+            in
+                { model | todos = List.map updateTodo model.todos }
+
+        Uncomplete todo ->
+            let
+                updateTodo thisTodo =
+                    if thisTodo.identifier == todo.identifier then
+                        { todo | completed = False }
+                    else
+                        thisTodo
+            in
+                { model | todos = List.map updateTodo model.todos }
 
         Delete todo ->
             model
@@ -124,18 +151,31 @@ update msg model =
 
         UpdateField str ->
             let
-                todo = model.todo
-                updatedTodo = { todo | title = str }
+                todo =
+                    model.todo
+
+                updatedTodo =
+                    { todo | title = str }
             in
                 { model | todo = updatedTodo }
 
+
 todoView : Todo -> Html Msg
 todoView todo =
+    let
+        handleComplete =
+            case todo.completed of
+                True -> (\_ -> Uncomplete todo)
+                False -> (\_ -> Complete todo)
+    in
     -- We will give the li the class "completed" if the todo is completed
     li [ classList [ ( "completed", todo.completed ) ] ]
         [ div [ class "view" ]
             -- We will check the checkbox if the todo is completed
-            [ input [ class "toggle", type' "checkbox", checked todo.completed ] []
+            [ input [ class "toggle"
+                    , type' "checkbox"
+                    , checked todo.completed
+                    , onCheck handleComplete ] []
               -- We will use the todo's title as the label text
             , label [] [ text todo.title ]
             , button [ class "destroy" ] []
