@@ -83,8 +83,7 @@ type alias Model =
 
 type Msg
     = Add
-    | Complete Todo
-    | Uncomplete Todo
+    | ToggleCompletion Todo Bool
     | Delete Todo
     | UpdateField String
     | Filter FilterState
@@ -123,21 +122,11 @@ update msg model =
                 , nextIdentifier = model.nextIdentifier + 1
             }
 
-        Complete todo ->
+        ToggleCompletion todo checked ->
             let
                 updateTodo thisTodo =
                     if thisTodo.identifier == todo.identifier then
-                        { todo | completed = True }
-                    else
-                        thisTodo
-            in
-                { model | todos = List.map updateTodo model.todos }
-
-        Uncomplete todo ->
-            let
-                updateTodo thisTodo =
-                    if thisTodo.identifier == todo.identifier then
-                        { todo | completed = False }
+                        { todo | completed = checked }
                     else
                         thisTodo
             in
@@ -162,31 +151,22 @@ update msg model =
 
 todoView : Todo -> Html Msg
 todoView todo =
-    let
-        handleComplete =
-            case todo.completed of
-                True ->
-                    (\_ -> Uncomplete todo)
-
-                False ->
-                    (\_ -> Complete todo)
-    in
-        -- We will give the li the class "completed" if the todo is completed
-        li [ classList [ ( "completed", todo.completed ) ] ]
-            [ div [ class "view" ]
-                -- We will check the checkbox if the todo is completed
-                [ input
-                    [ class "toggle"
-                    , type' "checkbox"
-                    , checked todo.completed
-                    , onCheck handleComplete
-                    ]
-                    []
-                  -- We will use the todo's title as the label text
-                , label [] [ text todo.title ]
-                , button [ class "destroy" ] []
+    -- We will give the li the class "completed" if the todo is completed
+    li [ classList [ ( "completed", todo.completed ) ] ]
+        [ div [ class "view" ]
+            -- We will check the checkbox if the todo is completed
+            [ input
+                [ class "toggle"
+                , type' "checkbox"
+                , checked todo.completed
+                , onCheck (\checked -> ToggleCompletion todo checked)
                 ]
+                []
+              -- We will use the todo's title as the label text
+            , label [] [ text todo.title ]
+            , button [ class "destroy" ] []
             ]
+        ]
 
 
 view : Model -> Html Msg
