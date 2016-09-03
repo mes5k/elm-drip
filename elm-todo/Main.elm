@@ -8,7 +8,7 @@ import Html.Attributes exposing (..)
 -- We need to import the `on` event from Html.Events, and we'll need keyCode
 -- later so let's add it as well.
 
-import Html.Events exposing (on, keyCode)
+import Html.Events exposing (on, keyCode, onInput)
 
 
 -- We need to use a Json Decoder to extract our keyCode from the `on` event.
@@ -16,15 +16,6 @@ import Html.Events exposing (on, keyCode)
 -- where you actually need to use this early on.
 
 import Json.Decode as Json
-
-
-mockTodo : Todo
-mockTodo =
-    { title = "A mock todo..."
-    , completed = False
-    , editing = False
-    }
-
 
 
 -- We define a function called is13 that takes an int and returns a result.
@@ -49,7 +40,7 @@ is13 code =
 
 handleKeyPress : Json.Decoder Msg
 handleKeyPress =
-    Json.map (always (Add mockTodo)) (Json.customDecoder keyCode is13)
+    Json.map (always Add) (Json.customDecoder keyCode is13)
 
 
 
@@ -89,10 +80,19 @@ type alias Model =
 
 
 type Msg
-    = Add Todo
+    = Add
     | Complete Todo
     | Delete Todo
+    | UpdateField String
     | Filter FilterState
+
+
+newTodo : Todo
+newTodo =
+  { title = ""
+  , completed = False
+  , editing = False
+  }
 
 
 initialModel =
@@ -102,11 +102,7 @@ initialModel =
           , editing = False
           }
         ]
-    , todo =
-        { title = ""
-        , completed = False
-        , editing = False
-        }
+    , todo = newTodo
     , filter = All
     }
 
@@ -114,8 +110,8 @@ initialModel =
 update : Msg -> Model -> Model
 update msg model =
     case msg of
-        Add todo ->
-            { model | todos = todo :: model.todos }
+        Add ->
+            {model | todos = model.todo :: model.todos , todo = newTodo }
 
         Complete todo ->
             model
@@ -126,6 +122,12 @@ update msg model =
         Filter filterState ->
             model
 
+        UpdateField str ->
+            let
+                todo = model.todo
+                updatedTodo = { todo | title = str }
+            in
+                { model | todo = updatedTodo }
 
 todoView : Todo -> Html Msg
 todoView todo =
@@ -152,7 +154,9 @@ view model =
                     [ class "new-todo"
                     , placeholder "What needs to be done?"
                     , autofocus True
+                    , value model.todo.title
                     , on "keypress" handleKeyPress
+                    , onInput UpdateField
                     ]
                     []
                 ]
