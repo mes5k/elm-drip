@@ -119,7 +119,7 @@ update msg model =
         Add ->
             { model
                 | todos = model.todo :: model.todos
-                , todo = newTodo
+                , todo = { newTodo | identifier = model.nextIdentifier }
                 , nextIdentifier = model.nextIdentifier + 1
             }
 
@@ -165,22 +165,28 @@ todoView todo =
     let
         handleComplete =
             case todo.completed of
-                True -> (\_ -> Uncomplete todo)
-                False -> (\_ -> Complete todo)
+                True ->
+                    (\_ -> Uncomplete todo)
+
+                False ->
+                    (\_ -> Complete todo)
     in
-    -- We will give the li the class "completed" if the todo is completed
-    li [ classList [ ( "completed", todo.completed ) ] ]
-        [ div [ class "view" ]
-            -- We will check the checkbox if the todo is completed
-            [ input [ class "toggle"
+        -- We will give the li the class "completed" if the todo is completed
+        li [ classList [ ( "completed", todo.completed ) ] ]
+            [ div [ class "view" ]
+                -- We will check the checkbox if the todo is completed
+                [ input
+                    [ class "toggle"
                     , type' "checkbox"
                     , checked todo.completed
-                    , onCheck handleComplete ] []
-              -- We will use the todo's title as the label text
-            , label [] [ text todo.title ]
-            , button [ class "destroy" ] []
+                    , onCheck handleComplete
+                    ]
+                    []
+                  -- We will use the todo's title as the label text
+                , label [] [ text todo.title ]
+                , button [ class "destroy" ] []
+                ]
             ]
-        ]
 
 
 view : Model -> Html Msg
