@@ -8,9 +8,10 @@ import Html.Attributes exposing (..)
 -- We need to import the `on` event from Html.Events, and we'll need keyCode
 -- later so let's add it as well.
 
-import Html.Events exposing (on, keyCode, onInput, onCheck)
+import Html.Events exposing (..)
 
 
+--import Html.Events exposing (on, keyCode, onInput, onCheck)
 -- We need to use a Json Decoder to extract our keyCode from the `on` event.
 -- For the most part we'll gloss over this for now - there are not many events
 -- where you actually need to use this early on.
@@ -136,7 +137,7 @@ update msg model =
             model
 
         Filter filterState ->
-            model
+            { model | filter = filterState }
 
         UpdateField str ->
             let
@@ -147,6 +148,23 @@ update msg model =
                     { todo | title = str }
             in
                 { model | todo = updatedTodo }
+
+
+filteredTodos : Model -> List Todo
+filteredTodos model =
+    let
+        matchesFilter =
+            case model.filter of
+                All ->
+                    (\_ -> True)
+
+                Active ->
+                    (\todo -> todo.completed == False)
+
+                Completed ->
+                    (\todo -> todo.completed == True)
+    in
+        List.filter matchesFilter model.todos
 
 
 todoView : Todo -> Html Msg
@@ -169,6 +187,18 @@ todoView todo =
         ]
 
 
+filterItemView : Model -> FilterState -> Html Msg
+filterItemView model filterState =
+    li []
+        [ a
+            [ classList [ ( "selected", (model.filter == filterState) ) ]
+            , href "#"
+            , onClick (Filter filterState)
+            ]
+            [ text (toString filterState) ]
+        ]
+
+
 view : Model -> Html Msg
 view model =
     div []
@@ -188,8 +218,27 @@ view model =
                 ]
             , section [ class "main" ]
                 [ ul [ class "todo-list" ]
-                    (List.map todoView model.todos)
+                    (List.map todoView (filteredTodos model))
                 ]
+            ]
+        , footer [ class "footer" ]
+            [ span [ class "todo-count" ]
+                [ strong []
+                    [ text
+                        (toString
+                            (List.length
+                                (List.filter (\todo -> todo.completed == False) model.todos)
+                            )
+                        )
+                    , text " items left"
+                    ]
+                ]
+            , ul [ class "filters" ]
+                [ filterItemView model All
+                , filterItemView model Active
+                , filterItemView model Completed
+                ]
+            , button [ class "clear-completed" ] [ text "Clear completed" ]
             ]
         ]
 
