@@ -86,6 +86,7 @@ type Msg
     = Add
     | ToggleCompletion Todo Bool
     | Delete Todo
+    | Clear
     | UpdateField String
     | Filter FilterState
 
@@ -134,7 +135,10 @@ update msg model =
                 { model | todos = List.map updateTodo model.todos }
 
         Delete todo ->
-            model
+            { model | todos = List.filter (\ftodo -> todo.identifier /= ftodo.identifier)  model.todos }
+
+        Clear ->
+            { model | todos = List.filter (\todo -> todo.completed == False)  model.todos }
 
         Filter filterState ->
             { model | filter = filterState }
@@ -182,7 +186,7 @@ todoView todo =
                 []
               -- We will use the todo's title as the label text
             , label [] [ text todo.title ]
-            , button [ class "destroy" ] []
+            , button [ class "destroy", onClick (Delete todo) ] []
             ]
         ]
 
@@ -238,7 +242,7 @@ view model =
                 , filterItemView model Active
                 , filterItemView model Completed
                 ]
-            , button [ class "clear-completed" ] [ text "Clear completed" ]
+            , button [ class "clear-completed", onClick (Clear) ] [ text "Clear completed" ]
             ]
         ]
 
