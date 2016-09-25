@@ -6,10 +6,12 @@
     <!-- We'll load elm.js, which will be produced for us by elm-make and will
          include our module as well as the elm runtime in general -->
     <script type="text/javascript" src="elm.js"></script>
+    <div id="main"></div>
     <script>
       // Then we'll use `Elm.fullscreen` to load our application and have it
       // take over the full screen.
-      var app = Elm.Main.fullscreen();
+      var node = document.getElementById('main');
+      var app = Elm.Main.embed(node);
       var incrementClickCount = 0;
       app.ports.increment.subscribe(function(){
         incrementClickCount += 1;
@@ -18,6 +20,20 @@
       // Finally, we'll expose our app as a global variable, which will allow
       // us to manipulate it from the console later.
       window.app = app;
+    </script>
+    <p>
+    <button type="button" onclick="app.ports.jsMsgs.send(1)">Different increment</button>
+    </p>
+    <div id="names"></div>
+    <script>
+      var names = document.getElementById('names');
+      var ul=document.createElement('ul');
+      names.appendChild(ul);
+      app.ports.increment.subscribe(function(){
+            var li=document.createElement('li');
+            ul.appendChild(li);
+            li.innerHTML="hello";
+      });
     </script>
   </body>
 </html>
