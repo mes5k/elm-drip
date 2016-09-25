@@ -1,0 +1,18 @@
+<html>
+  <head>
+    <title>Elm Ports Counter Example</title>
+  </head>
+  <body>
+    <!-- We'll load elm.js, which will be produced for us by elm-make and will
+         include our module as well as the elm runtime in general -->
+    <script type="text/javascript" src="elm.js"></script>
+    <script>
+      // Then we'll use `Elm.fullscreen` to load our application and have it
+      // take over the full screen.
+      var app = Elm.Main.fullscreen();
+      // Finally, we'll expose our app as a global variable, which will allow
+      // us to manipulate it from the console later.
+      window.app = app;
+    </script>
+  </body>
+</html>
