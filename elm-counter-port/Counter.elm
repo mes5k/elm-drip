@@ -14,10 +14,6 @@ main =
         }
 
 
-subscriptions model =
-  jsMsgs mapJsMsg
-
-
 
 -- MODEL
 
@@ -47,7 +43,7 @@ update msg model =
     case msg of
         Increment ->
             ({ model | count = model.count + 1, num_inc = model.num_inc + 1 }
-            , Cmd.none
+            , increment ()
             )
 
         Decrement ->
@@ -80,9 +76,18 @@ view model =
         , h3 [] [ text ("Num decrement: " ++ toString model.num_dec) ]
         ]
 
--- PORTS
+-- SUBSCRIPTIONS
+
+subscriptions model =
+  jsMsgs mapJsMsg
+
 
 port jsMsgs : (Int -> msg) -> Sub msg
+
+-- First, we want to add the outbound port we subscribed to from the JS side.
+-- This is a function that takes one argument and returns a `Cmd`.  In our case,
+-- we have nothing to send so we'll make its input type the unit.
+port increment : () -> Cmd msg
 
 -- Finally, we'll define a function that takes an `Int and produces a Msg.
 -- This is the function we'll hand to our port function to take care of mapping

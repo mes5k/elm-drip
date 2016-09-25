@@ -10,6 +10,11 @@
       // Then we'll use `Elm.fullscreen` to load our application and have it
       // take over the full screen.
       var app = Elm.Main.fullscreen();
+      var incrementClickCount = 0;
+      app.ports.increment.subscribe(function(){
+        incrementClickCount += 1;
+        console.log("Increment has been clicked " + incrementClickCount + " times.");
+      });
       // Finally, we'll expose our app as a global variable, which will allow
       // us to manipulate it from the console later.
       window.app = app;
