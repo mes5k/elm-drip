@@ -7,6 +7,10 @@
          include our module as well as the elm runtime in general -->
     <script type="text/javascript" src="elm.js"></script>
     <div id="main"></div>
+    <p>
+    <button type="button" onclick="app.ports.jsMsgs.send(1)">Different increment</button>
+    </p>
+    <div id="names"></div>
     <script>
       // Then we'll use `Elm.fullscreen` to load our application and have it
       // take over the full screen.
@@ -17,15 +21,12 @@
         incrementClickCount += 1;
         console.log("Increment has been clicked " + incrementClickCount + " times.");
       });
+      app.ports.storage.subscribe(function(data){
+        localStorage.setItem('counter', data);
+      });
       // Finally, we'll expose our app as a global variable, which will allow
       // us to manipulate it from the console later.
       window.app = app;
-    </script>
-    <p>
-    <button type="button" onclick="app.ports.jsMsgs.send(1)">Different increment</button>
-    </p>
-    <div id="names"></div>
-    <script>
       var names = document.getElementById('names');
       var ul=document.createElement('ul');
       names.appendChild(ul);

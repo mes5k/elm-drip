@@ -38,28 +38,44 @@ type Msg
     | NoOp
 
 
-update : Msg -> Model -> (Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Increment ->
-            ({ model | count = model.count + 1, num_inc = model.num_inc + 1 }
-            , increment ()
-            )
+            let
+                newModel =
+                    { model | count = model.count + 1, num_inc = model.num_inc + 1 }
+            in
+                ( newModel
+                , Cmd.batch
+                    [ increment ()
+                    , storage newModel.count
+                    ]
+                )
 
         Decrement ->
-            ({ model | count = model.count - 1, num_dec = model.num_dec + 1 }
-            , Cmd.none
-            )
+            let
+                newModel =
+                    { model | count = model.count - 1, num_dec = model.num_dec + 1 }
+            in
+                ( newModel
+                , storage newModel.count
+                )
 
         Reset ->
-            ({ model | count = 0 }
-            , Cmd.none
-            )
+            let
+                newModel =
+                    { model | count = 0 }
+            in
+                ( newModel
+                , storage newModel.count
+                )
 
         NoOp ->
             ( model
             , Cmd.none
             )
+
 
 
 -- VIEW
@@ -76,28 +92,44 @@ view model =
         , h3 [] [ text ("Num decrement: " ++ toString model.num_dec) ]
         ]
 
+
+
 -- SUBSCRIPTIONS
 
+
 subscriptions model =
-  jsMsgs mapJsMsg
+    jsMsgs mapJsMsg
 
 
 port jsMsgs : (Int -> msg) -> Sub msg
 
+
+
 -- First, we want to add the outbound port we subscribed to from the JS side.
 -- This is a function that takes one argument and returns a `Cmd`.  In our case,
 -- we have nothing to send so we'll make its input type the unit.
+
+
 port increment : () -> Cmd msg
+
+
+port storage : Int -> Cmd msg
+
+
 
 -- Finally, we'll define a function that takes an `Int and produces a Msg.
 -- This is the function we'll hand to our port function to take care of mapping
 -- incoming data to our preferred type.
+
+
 mapJsMsg : Int -> Msg
 mapJsMsg int =
-  case int of
-    1 ->
-      Increment
-    2 ->
-      Decrement
-    _ ->
-      NoOp
+    case int of
+        1 ->
+            Increment
+
+        2 ->
+            Decrement
+
+        _ ->
+            NoOp
