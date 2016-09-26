@@ -1,5 +1,6 @@
 <html>
   <head>
+    <meta charset="utf-8"/>
     <title>Elm Ports Counter Example</title>
   </head>
   <body>
@@ -12,21 +13,28 @@
     </p>
     <div id="names"></div>
     <script>
-      // Then we'll use `Elm.fullscreen` to load our application and have it
-      // take over the full screen.
       var node = document.getElementById('main');
       var app = Elm.Main.embed(node);
+
+      var currentCount = localStorage.getItem("counter");
+      window.setTimeout(function(){
+          app.ports.storageInput.send(Number(currentCount));
+      }, 0);
+
       var incrementClickCount = 0;
       app.ports.increment.subscribe(function(){
         incrementClickCount += 1;
         console.log("Increment has been clicked " + incrementClickCount + " times.");
       });
+
       app.ports.storage.subscribe(function(data){
         localStorage.setItem('counter', data);
       });
+
       // Finally, we'll expose our app as a global variable, which will allow
       // us to manipulate it from the console later.
       window.app = app;
+
       var names = document.getElementById('names');
       var ul=document.createElement('ul');
       names.appendChild(ul);

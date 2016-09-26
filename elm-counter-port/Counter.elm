@@ -35,6 +35,7 @@ type Msg
     = Increment
     | Decrement
     | Reset
+    | Set Int
     | NoOp
 
 
@@ -71,6 +72,11 @@ update msg model =
                 , storage newModel.count
                 )
 
+        Set newCount ->
+            ( { model | count = newCount }
+            , Cmd.none
+            )
+
         NoOp ->
             ( model
             , Cmd.none
@@ -98,7 +104,10 @@ view model =
 
 
 subscriptions model =
-    jsMsgs mapJsMsg
+    Sub.batch
+        [ jsMsgs mapJsMsg
+        , storageInput Set
+        ]
 
 
 port jsMsgs : (Int -> msg) -> Sub msg
@@ -114,6 +123,9 @@ port increment : () -> Cmd msg
 
 
 port storage : Int -> Cmd msg
+
+
+port storageInput : (Int -> msg) -> Sub msg
 
 
 
