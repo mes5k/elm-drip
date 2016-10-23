@@ -35,7 +35,7 @@ type Msg
     = Increment
     | Decrement
     | Reset
-    | Set Int
+    | Set Model
     | NoOp
 
 
@@ -50,7 +50,7 @@ update msg model =
                 ( newModel
                 , Cmd.batch
                     [ increment ()
-                    , storage newModel.count
+                    , storage newModel
                     ]
                 )
 
@@ -60,7 +60,7 @@ update msg model =
                     { model | count = model.count - 1, num_dec = model.num_dec + 1 }
             in
                 ( newModel
-                , storage newModel.count
+                , storage newModel
                 )
 
         Reset ->
@@ -69,11 +69,11 @@ update msg model =
                     { model | count = 0 }
             in
                 ( newModel
-                , storage newModel.count
+                , storage newModel
                 )
 
-        Set newCount ->
-            ( { model | count = newCount }
+        Set newModel ->
+            ( newModel
             , Cmd.none
             )
 
@@ -122,10 +122,10 @@ port jsMsgs : (Int -> msg) -> Sub msg
 port increment : () -> Cmd msg
 
 
-port storage : Int -> Cmd msg
+port storage : Model -> Cmd msg
 
 
-port storageInput : (Int -> msg) -> Sub msg
+port storageInput : (Model -> msg) -> Sub msg
 
 
 
