@@ -1,7 +1,7 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import Html exposing (..)
-import Html.App as App
+import Html.App as Html
 import Html.Attributes exposing (..)
 
 
@@ -17,6 +17,17 @@ import Html.Events exposing (..)
 -- where you actually need to use this early on.
 
 import Json.Decode as Json
+
+
+-- We'll bring in this decode operator, which just makes it easy to apply a
+-- decoder to a given field.
+
+import Json.Decode exposing ((:=))
+
+
+-- We also want to use Json.Encode
+
+import Json.Encode
 
 
 -- We define a function called is13 that takes an int and returns a result.
@@ -89,6 +100,8 @@ type Msg
     | Clear
     | UpdateField String
     | Filter FilterState
+    | SetModel Model
+    | NoOp
 
 
 newTodo : Todo
@@ -114,16 +127,28 @@ initialModel =
     }
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Add ->
-            { model
-                | todos = model.todo :: model.todos
-                , todo = { newTodo | identifier = model.nextIdentifier }
-                , nextIdentifier = model.nextIdentifier + 1
-            }
+            let
+                newModel =
+                    { model
+                        | todos = model.todo :: model.todos
+                        , todo = { newTodo | identifier = model.nextIdentifier }
+                        , nextIdentifier = model.nextIdentifier + 1
+                    }
+            in
+                ( newModel, sendToStorage newModel )
 
+        Clear ->
+            let
+                newModel =
+                    { model
+                        | todos = List.filter (\todo -> todo.completed == False) model.todos
+                    }
+            in
+                ( newModel, sendToStorage newModel )
         ToggleCompletion todo checked ->
             let
                 updateTodo thisTodo =
@@ -131,17 +156,28 @@ update msg model =
                         { todo | completed = checked }
                     else
                         thisTodo
+                newModel =
+                    { model
+                        | todos = List.map updateTodo model.todos
+                    }
             in
-                { model | todos = List.map updateTodo model.todos }
+                ( newModel, sendToStorage newModel )
 
         Delete todo ->
-            { model | todos = List.filter (\ftodo -> todo.identifier /= ftodo.identifier)  model.todos }
-
-        Clear ->
-            { model | todos = List.filter (\todo -> todo.completed == False)  model.todos }
+            let
+                newModel =
+                    { model
+                        | todos = List.filter (\mappedTodo -> todo.identifier /= mappedTodo.identifier) model.todos
+                    }
+            in
+                ( newModel, sendToStorage newModel )
 
         Filter filterState ->
-            { model | filter = filterState }
+            let
+                newModel =
+                    { model | filter = filterState }
+            in
+                ( newModel, sendToStorage newModel )
 
         UpdateField str ->
             let
@@ -150,8 +186,17 @@ update msg model =
 
                 updatedTodo =
                     { todo | title = str }
+
+                newModel =
+                    { model | todo = updatedTodo }
             in
-                { model | todo = updatedTodo }
+                ( newModel, sendToStorage newModel )
+
+        SetModel newModel ->
+            newModel ! []
+
+        NoOp ->
+            model ! []
 
 
 filteredTodos : Model -> List Todo
@@ -248,11 +293,123 @@ view model =
 
 
 main =
-    App.beginnerProgram
-        { model = initialModel
+    Html.program
+        { init = ( initialModel, Cmd.none )
         , update = update
         , view = view
+        , subscriptions = subscriptions
         }
+
+
+
+-- We'll just map the storage input value into our model
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    storageInput mapStorageInput
+
+
+
+-- We'll define how to encode our Model to Json.Encode.Values
+
+
+encodeJson : Model -> Json.Encode.Value
+encodeJson model =
+    -- It's a json object with a list of fields
+    Json.Encode.object
+        -- The `todos` field is a list of encoded Todos, we'll define this encodeTodo function later
+        [ ( "todos", Json.Encode.list (List.map encodeTodo model.todos) )
+          -- The current todo is also going to go through encodeTodo
+        , ( "todo", encodeTodo model.todo )
+          -- The filter gets encoded with a custom function as well
+        , ( "filter", encodeFilterState model.filter )
+          -- And the next identifier is just an int
+        , ( "nextIdentifier", Json.Encode.int model.nextIdentifier )
+        ]
+
+
+
+-- We'll define how to encode a Todo
+
+
+encodeTodo : Todo -> Json.Encode.Value
+encodeTodo todo =
+    -- It's an object with a list of fields
+    Json.Encode.object
+        -- The title is a string
+        [ ( "title", Json.Encode.string todo.title )
+          -- completed is a bool
+        , ( "completed", Json.Encode.bool todo.completed )
+          -- editing is a bool
+        , ( "editing", Json.Encode.bool todo.editing )
+          -- identifier is an int
+        , ( "identifier", Json.Encode.int todo.identifier )
+        ]
+
+
+
+-- The FilterState encoder takes a FilterState and returns a Json.Encode.Value
+
+
+encodeFilterState : FilterState -> Json.Encode.Value
+encodeFilterState filterState =
+    -- We'll just have a case statement to turn these into strings.
+    case filterState of
+        All ->
+            Json.Encode.string "All"
+
+        Active ->
+            Json.Encode.string "Active"
+
+        Completed ->
+            Json.Encode.string "Completed"
+
+
+
+-- We could just as easily have used toString here...not sure why I don't.
+-- We will need to map the input we get from the inbound port into our
+-- model...we'll deal with that later.
+
+
+mapStorageInput : Json.Decode.Value -> Msg
+mapStorageInput modelJson =
+    let
+        model =
+            initialModel
+
+        -- we ultimately need to decode inbound json here but
+        -- this will at least get us compiling...
+    in
+        SetModel model
+
+
+
+-- Sending to storage now just needs to encode the model to JSON before
+-- sending it out the port.
+
+
+sendToStorage : Model -> Cmd Msg
+sendToStorage model =
+    encodeJson model |> storage
+
+
+
+-- INPUT PORTS
+-- our input port gets Json.Decode.Values into it
+
+
+port storageInput : (Json.Decode.Value -> msg) -> Sub msg
+
+
+
+-- OUTPUT PORTS
+-- We have an outbound port of Json.Encode.Values now - notice we aren't dealing
+-- with them as raw string representations ever in our Elm code.  They're still
+-- typed.
+
+
+port storage : Json.Encode.Value -> Cmd msg
 
 
 styles : String
